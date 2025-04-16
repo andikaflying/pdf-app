@@ -75,10 +75,6 @@ async function generatePDF(url: string): Promise<Uint8Array<ArrayBufferLike>> {
 
     // await waitForDOMToSettle(page);
 
-    console.log("Page fully loaded. Taking screenshot...");
-    await page.screenshot({ path: "site.png" });
-    console.log(`Screenshot saved.`);
-
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -89,6 +85,8 @@ async function generatePDF(url: string): Promise<Uint8Array<ArrayBufferLike>> {
         left: "20px",
       },
     });
+
+    console.log("PDF generated successfully!");
 
     return pdfBuffer;
   } catch (error: unknown) {
