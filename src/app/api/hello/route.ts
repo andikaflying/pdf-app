@@ -57,7 +57,7 @@ async function generatePDF(url: string): Promise<Readable> {
 
   try {
     const launchArgs = JSON.stringify({
-      args: [`--window-size=1920,1080`],
+      args: [`--window-size=794,1123`],
       headless: false,
       stealth: true,
     });
@@ -68,10 +68,10 @@ async function generatePDF(url: string): Promise<Readable> {
 
     const page = await browser.newPage();
 
-    page.setViewport({ width: 1920, height: 1080 });
+    page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
     await page.setUserAgent("My Custom User Agent/1.0");
     console.log(`Navigating to ${url}...`);
-    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.goto(url, { waitUntil: "load" });
 
     await waitForDOMToSettle(page);
     console.log("Page fully loaded. Taking screenshot...");
@@ -82,7 +82,16 @@ async function generatePDF(url: string): Promise<Readable> {
       read() {},
     });
 
-    const pdfBuffer = await page.pdf({ format: "A4" });
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20px",
+        right: "20px",
+        bottom: "20px",
+        left: "20px",
+      },
+    });
     pdfStream.push(pdfBuffer);
     pdfStream.push(null);
 

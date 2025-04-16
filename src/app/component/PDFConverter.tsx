@@ -5,33 +5,31 @@ import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
-import CircularProgress from "@mui/material/CircularProgress";
 import { Typography, Snackbar, Alert } from "@mui/material";
 import { CloudDownloadRounded } from "@mui/icons-material";
+import { theme } from "../providers/ThemeProvider";
+import Loading from "./micro/Loading";
+import { downloadURL, formatUrl, isValidUrl } from "../utils/utils";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: "#1976d2",
-    },
-  },
-  typography: {
-    fontFamily: "var(--font-geist-sans)",
-  },
-});
-
-export default function BeautifulSearchBar() {
+export default function PDFConverter() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const generatePDF = (event: React.FormEvent) => {
     event.preventDefault();
-    const targetUrl = `https://${searchTerm}`;
 
+    if (!isValidUrl(searchTerm)) {
+      setError(
+        "Please enter a valid URL (e.g., www.google.com or https://www.google.com)"
+      );
+      return;
+    }
+
+    const targetUrl = formatUrl(searchTerm);
+
+    setError(null);
     setLoading(true);
     fetch("/api/hello", {
       method: "POST",
@@ -40,7 +38,7 @@ export default function BeautifulSearchBar() {
       },
       body: JSON.stringify({ url: targetUrl }),
     })
-      .then((response) => {
+      .then((response: Response) => {
         if (response.ok) {
           return response.blob();
         } else {
@@ -49,19 +47,12 @@ export default function BeautifulSearchBar() {
           });
         }
       })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = ".pdf";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
+      .then(downloadURL)
       .catch((error) => {
         console.error("Error downloading PDF:", error.message);
-        setSnackbarMessage(error.message || "An unknown error occurred.");
-        setSnackbarOpen(true);
+        setError(
+          error instanceof Error ? error.message : "An unknown error occurred"
+        );
       })
       .finally(() => {
         setLoading(false);
@@ -81,36 +72,8 @@ export default function BeautifulSearchBar() {
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      {loading && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 9999,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            fontFamily: "var(--font-geist-sans)",
-          }}
-        >
-          <CircularProgress style={{ color: "#fff" }} />
-          <Typography
-            variant="h6"
-            style={{
-              color: "#fff",
-              marginLeft: "16px",
-            }}
-          >
-            Generating PDF...
-          </Typography>
-        </div>
-      )}
-
+    <>
+      {loading && <Loading />}
       <Box
         display="flex"
         justifyContent="center"
@@ -181,7 +144,6 @@ export default function BeautifulSearchBar() {
               },
             }}
             placeholder="Ex: www.test.com"
-            inputProps={{ "aria-label": "search query" }}
             value={searchTerm}
             onChange={handleInputChange}
             variant="outlined"
@@ -203,19 +165,19 @@ export default function BeautifulSearchBar() {
       </Box>
 
       <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
+        open={!!error}
+        autoHideDuration={5000}
+        onClose={() => setError(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setSnackbarOpen(false)}
+          onClose={() => setError(null)}
           severity="error"
           sx={{ width: "100%" }}
         >
-          {snackbarMessage}
+          {error}
         </Alert>
       </Snackbar>
-    </ThemeProvider>
+    </>
   );
 }
