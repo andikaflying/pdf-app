@@ -7,7 +7,7 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import CircularProgress from "@mui/material/CircularProgress";
-import { Typography } from "@mui/material";
+import { Typography, Snackbar, Alert } from "@mui/material";
 import { CloudDownloadRounded } from "@mui/icons-material";
 
 const theme = createTheme({
@@ -25,6 +25,8 @@ export default function BeautifulSearchBar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const generatePDF = (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,13 +53,15 @@ export default function BeautifulSearchBar() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "generated.pdf";
+        a.download = ".pdf";
         document.body.appendChild(a);
         a.click();
         a.remove();
       })
       .catch((error) => {
         console.error("Error downloading PDF:", error.message);
+        setSnackbarMessage(error.message || "An unknown error occurred.");
+        setSnackbarOpen(true);
       })
       .finally(() => {
         setLoading(false);
@@ -197,6 +201,21 @@ export default function BeautifulSearchBar() {
           </IconButton>
         </Paper>
       </Box>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }
