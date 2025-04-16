@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import puppeteer, { Page } from "puppeteer-core";
-import { Readable } from "stream";
 
 const TOKEN = process.env.SERVERLESS_TOKEN;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const waitForDOMToSettle = (page: Page, timeoutMs = 30000, debounceMs = 1000) =>
   page.evaluate(
     (timeoutMs, debounceMs) => {
@@ -52,12 +52,12 @@ const waitForDOMToSettle = (page: Page, timeoutMs = 30000, debounceMs = 1000) =>
     debounceMs
   );
 
-async function generatePDF(url: string): Promise<Readable> {
+async function generatePDF(url: string): Promise<Uint8Array<ArrayBufferLike>> {
   let browser = null;
 
   try {
     const launchArgs = JSON.stringify({
-      args: [`--window-size=794,1123`],
+      args: [`--window-size=1920,1080`],
       headless: false,
       stealth: true,
     });
@@ -68,19 +68,16 @@ async function generatePDF(url: string): Promise<Readable> {
 
     const page = await browser.newPage();
 
-    page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
+    page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent("My Custom User Agent/1.0");
     console.log(`Navigating to ${url}...`);
-    await page.goto(url, { waitUntil: "load" });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
 
-    await waitForDOMToSettle(page);
+    // await waitForDOMToSettle(page);
+
     console.log("Page fully loaded. Taking screenshot...");
     await page.screenshot({ path: "site.png" });
     console.log(`Screenshot saved.`);
-
-    const pdfStream = new Readable({
-      read() {},
-    });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
@@ -92,11 +89,8 @@ async function generatePDF(url: string): Promise<Readable> {
         left: "20px",
       },
     });
-    pdfStream.push(pdfBuffer);
-    pdfStream.push(null);
 
-    console.log("PDF generation successful.");
-    return pdfStream;
+    return pdfBuffer;
   } catch (error: unknown) {
     let message = "";
     if (error instanceof Error) {
